@@ -7,6 +7,7 @@
 import json
 from functools import cache
 from pathlib import Path
+import random
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 MAX_RESULTS = 3
@@ -77,3 +78,30 @@ def get_lecture_summary(lecture: int) -> str:
         available = sorted(p.stem for p in (DATA_DIR / "lectures").glob("*.md"))
         return f"第{lecture}回の要点はまだありません。用意されている回: {', '.join(available)}"
     return path.read_text(encoding="utf-8")
+
+def make_quiz(lecture: int) -> str:
+    """指定された回の講義内容から、ランダムに用語のクイズ（問題）を作成する。
+
+    Args:
+        lecture (int): 講義の回数（例: 1, 2, 3）
+    """
+    # 1. 用語集を読み込む
+    glossary = load_glossary()
+    
+    # 2. 指定された回 (lecture) の用語だけに絞り込む
+    target_terms = [item for item in glossary if item.get("lecture") == lecture]
+    
+    # 3. 該当する用語がない場合のエラーハンドリング
+    if not target_terms:
+        return f"第{lecture}回の用語データは見つかりませんでした。"
+    
+    # 4. ランダムに1つ用語を選ぶ
+    selected = random.choice(target_terms)
+    
+    # 5. エージェントがユーザーに出題するためのテキストを返す
+    # （※エージェントが答え合わせできるように、正解もこっそり渡しておきます）
+    return (
+        f"以下の説明が表す用語は何でしょう？\n"
+        f"【説明】: {selected['definition']}\n\n"
+        f"※エージェントへのシステム情報: 正解は「{selected['term']}」です。ユーザーには正解を隠して出題し、回答を待ってください。"
+    )
